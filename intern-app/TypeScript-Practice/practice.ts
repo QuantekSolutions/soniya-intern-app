@@ -28,21 +28,19 @@ console.log("\nSpread Operator:");
 console.log("Original Array:", numbers);
 console.log("New Array:", moreNumbers);
 
-// 4. map() - Transform Array Elements
+// 4. map()
 const doubledNumbers = numbers.map((num) => num * 2);
 
 console.log("\nUsing map():");
 console.log(doubledNumbers);
 
-// 5. filter() - Filter Array Elements
+// 5. filter()
 const evenNumbers = moreNumbers.filter((num) => num % 2 === 0);
 
 console.log("\nUsing filter():");
 console.log(evenNumbers);
 
 // 6. Async/Await with Fetch API
-
-
 const fetchUsers = async (): Promise<void> => {
   try {
     const response = await fetch(
@@ -53,11 +51,10 @@ const fetchUsers = async (): Promise<void> => {
       throw new Error("Failed to fetch users");
     }
 
-    const users: User[] = await response.json();
+    const users = await response.json();
 
     console.log("\nFetched Users:");
     console.log(users);
-
     console.log("\nTotal Users:", users.length);
   } catch (error) {
     console.log("Error:", error);
@@ -68,24 +65,20 @@ fetchUsers();
 
 // 7. TypeScript Interface
 interface User {
-  id: number;
   name: string;
-  email: string;
+  age: number;
 }
 
 // 8. Function Using Interface
 const greetUser = (user: User): void => {
   console.log("\nUser Details:");
-  console.log("ID:", user.id);
   console.log("Name:", user.name);
-  console.log("Email:", user.email);
+  console.log("Age:", user.age);
 };
 
 const user: User = {
-  id: 1,
   name: "Soniya",
-  email: "soniya@example.com",
+  age: 20,
 };
 
 greetUser(user);
-
