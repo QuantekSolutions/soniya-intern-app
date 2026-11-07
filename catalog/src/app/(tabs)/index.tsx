@@ -1,25 +1,25 @@
 import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
   ActivityIndicator,
+  FlatList,
   Pressable,
+  StyleSheet,
+  Text,
   TextInput,
-} from 'react-native';
+  View,
+} from "react-native";
 
-import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchProducts, Product } from '../../../lib/api';
-import ProductCard from '../../components/ProductCard';
-import { useFavorites } from '../../context/FavoritesContext';
+import { router } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { fetchProducts, Product } from "../../../lib/api";
+import ProductCard from "../../components/ProductCard";
+import { useFavorites } from "../../context/FavoritesContext";
 
 export default function ProductsScreen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
   const { isFavorite, toggleFavorite } = useFavorites();
 
@@ -33,13 +33,26 @@ export default function ProductsScreen() {
       const data = await fetchProducts();
       setProducts(data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Something went wrong'
-      );
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchInitialProducts = async () => {
+      try {
+        const data = await fetchProducts();
+        setProducts(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialProducts();
   }, []);
 
   useEffect(() => {
@@ -48,7 +61,7 @@ export default function ProductsScreen() {
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) =>
-      product.title.toLowerCase().includes(search.trim().toLowerCase())
+      product.title.toLowerCase().includes(search.trim().toLowerCase()),
     );
   }, [products, search]);
 
@@ -65,7 +78,9 @@ export default function ProductsScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#A66F72" />
-        <Text style={styles.loadingText}>Preparing your beauty collection...</Text>
+        <Text style={styles.loadingText}>
+          Preparing your beauty collection...
+        </Text>
       </View>
     );
   }
@@ -98,7 +113,7 @@ export default function ProductsScreen() {
             <View style={styles.topHeader}>
               <Text style={styles.eyebrow}>THE BEAUTY EDIT</Text>
 
-             <Text style={styles.heading}>TEST NEW HOME SCREEN</Text>
+              <Text style={styles.heading}>DISCOVER YOUR STYLE ✨</Text>
 
               <Text style={styles.subtitle}>
                 A little beauty, a little luxury, just for you.
@@ -119,7 +134,7 @@ export default function ProductsScreen() {
               />
 
               {search.length > 0 && (
-                <Pressable onPress={() => setSearch('')}>
+                <Pressable onPress={() => setSearch("")}>
                   <Text style={styles.clearText}>✕</Text>
                 </Pressable>
               )}
@@ -133,9 +148,7 @@ export default function ProductsScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.count}>
-                {filteredProducts.length} items
-              </Text>
+              <Text style={styles.count}>{filteredProducts.length} items</Text>
             </View>
           </View>
         }
@@ -152,7 +165,7 @@ export default function ProductsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF6F0',
+    backgroundColor: "#FAF6F0",
   },
   listContent: {
     paddingHorizontal: 16,
@@ -161,18 +174,18 @@ const styles = StyleSheet.create({
   },
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAF6F0',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FAF6F0",
     padding: 20,
     gap: 14,
   },
   loadingText: {
-    color: '#806F69',
+    color: "#806F69",
     fontSize: 14,
   },
   topHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 18,
     marginBottom: 28,
     paddingHorizontal: 8,
@@ -180,106 +193,107 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 10,
     letterSpacing: 3,
-    fontWeight: '700',
-    color: '#A66F72',
+    fontWeight: "700",
+    color: "#A66F72",
     marginBottom: 13,
   },
   heading: {
     fontSize: 27,
-    fontWeight: '700',
-    color: '#382B2B',
-    textAlign: 'center',
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
+    fontWeight: "700",
+    fontFamily: "serif",
+    color: "#382B2B",
+    textAlign: "center",
+    letterSpacing: 1.5,
+    textTransform: "lowercase",
   },
   subtitle: {
     fontSize: 12,
-    color: '#8E7D76',
+    color: "#8E7D76",
     marginTop: 9,
-    textAlign: 'center',
+    textAlign: "center",
   },
   decorativeLine: {
     width: 42,
     height: 2,
-    backgroundColor: '#B18A58',
+    backgroundColor: "#B18A58",
     marginTop: 17,
     borderRadius: 2,
   },
   searchBox: {
     height: 52,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#EFE5DC',
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderColor: "#EFE5DC",
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 15,
     marginBottom: 30,
   },
   searchIcon: {
     fontSize: 27,
-    color: '#A66F72',
+    color: "#A66F72",
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#382B2B',
+    color: "#382B2B",
     paddingVertical: 0,
   },
   clearText: {
-    color: '#A66F72',
+    color: "#A66F72",
     fontSize: 16,
     padding: 5,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 17,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#382B2B',
+    fontWeight: "700",
+    color: "#382B2B",
   },
   sectionSubtitle: {
     fontSize: 11,
-    color: '#9A8981',
+    color: "#9A8981",
     marginTop: 4,
   },
   count: {
     fontSize: 11,
-    color: '#906466',
-    fontWeight: '700',
-    backgroundColor: '#F1E3DF',
+    color: "#906466",
+    fontWeight: "700",
+    backgroundColor: "#F1E3DF",
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 10,
   },
   row: {
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     gap: 12,
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 14,
-    color: '#8E7D76',
+    color: "#8E7D76",
     marginTop: 35,
   },
   error: {
     fontSize: 15,
-    color: '#B34F55',
-    textAlign: 'center',
+    color: "#B34F55",
+    textAlign: "center",
   },
   retryButton: {
-    backgroundColor: '#A66F72',
+    backgroundColor: "#A66F72",
     paddingHorizontal: 22,
     paddingVertical: 12,
     borderRadius: 12,
   },
   retryText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });
