@@ -54,7 +54,7 @@ Catalog is a mobile product catalog application built with React Native, Expo, a
 Clone the repository:
 
 ```bash
-git clone <>
+git clone https://github.com/QuantekSolutions/soniya-intern-app.git
 cd catalog
 ```
 
