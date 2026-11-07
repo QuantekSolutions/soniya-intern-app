@@ -19,16 +19,15 @@ Catalog is a mobile product catalog application built with React Native, Expo, a
 
 ### Products Screen
 
-![Products Screen](docs/screenshots/products.jpeg)
+<img src="docs/screenshots/products.jpeg" alt="Products Screen" width="300" height="400"/>
 
 ### Product Detail Screen (with saved photo)
 
-![Product Detail](docs/screenshots/detail-photo.jpeg)
+<img src="docs/screenshots/detail-photo.jpeg" alt="Product Detail" width="300" height="400"/>
 
 ### Favorites Screen
 
-![Favorites Screen](docs/screenshots/favorites.jpeg)
-
+<img src="docs/screenshots/favorites.jpeg" alt="Favorites Screen" width="300" height="400"/>
 ## Tech Stack
 
 | Technology   | Purpose                        |
