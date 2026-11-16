@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-c9c7aab28c614c52adb40fa7c08750f11f588457",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.22.0"
+  },
+  "userSourceNameMap": {
+    "contracts/TipJar.sol": "project/contracts/TipJar.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/TipJar.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.28;\r\n\r\ncontract TipJar {\r\n    // 1. Owner address\r\n    address public owner;\r\n\r\n    // 2. Tip structure\r\n    struct Tip {\r\n        address from;\r\n        uint256 amount;\r\n        string message;\r\n        uint256 timestamp;\r\n    }\r\n\r\n    // 3. Array to store all tips\r\n    Tip[] public tips;\r\n\r\n    // 4. Custom errors\r\n    error ZeroTip();\r\n    error NotOwner(address caller);\r\n\r\n    // 5. Events\r\n    event TipSent(address indexed from, uint256 amount, string message);\r\n\r\n    event Withdrawn(address indexed owner, uint256 amount);\r\n\r\n    // 6. Constructor\r\n    constructor() {\r\n        owner = msg.sender;\r\n    }\r\n\r\n    // 7. Owner-only modifier\r\n    modifier onlyOwner() {\r\n        if (msg.sender != owner) {\r\n            revert NotOwner(msg.sender);\r\n        }\r\n        _;\r\n    }\r\n\r\n    // 8. Receive tips\r\n    function tip(string calldata message) external payable {\r\n        // Check that ETH is not zero\r\n        if (msg.value == 0) {\r\n            revert ZeroTip();\r\n        }\r\n\r\n        // Store tip details\r\n        tips.push(\r\n            Tip({\r\n                from: msg.sender,\r\n                amount: msg.value,\r\n                message: message,\r\n                timestamp: block.timestamp\r\n            })\r\n        );\r\n\r\n        // Emit tip event\r\n        emit TipSent(msg.sender, msg.value, message);\r\n    }\r\n\r\n    // 9. Get total number of tips\r\n    function getTipCount() external view returns (uint256) {\r\n        return tips.length;\r\n    }\r\n\r\n    // 10. Get tip details by index\r\n    function getTip(uint256 index) external view returns (Tip memory) {\r\n        return tips[index];\r\n    }\r\n\r\n    // 11. Withdraw complete contract balance\r\n    function withdraw() external onlyOwner {\r\n        uint256 amount = address(this).balance;\r\n\r\n        // Send ETH to owner\r\n        (bool success, ) = payable(owner).call{value: amount}(\"\");\r\n\r\n        // Check whether transfer succeeded\r\n        require(success, \"Withdrawal failed\");\r\n\r\n        // Emit withdrawal event\r\n        emit Withdrawn(owner, amount);\r\n    }\r\n}\r\n"
+      }
+    }
+  }
+}
