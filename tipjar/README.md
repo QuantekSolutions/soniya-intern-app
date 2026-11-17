@@ -1,57 +1,155 @@
-# Sample Hardhat 3 Project (`node:test` and `viem`)
+# Hardhat 3 Project – TipJar & QuantekToken
 
 This project showcases a Hardhat 3 project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
 
-To learn more about Hardhat 3, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3](https://hardhat.org/hardhat3-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+To learn more about Hardhat 3, visit the [Getting Started Guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3).
+
+For feedback, join the [Hardhat 3 Telegram Group](https://hardhat.org/hardhat3-telegram-group) or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new).
 
 ## Project Overview
 
-This example project includes:
+This project includes:
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](https://nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+- TipJar smart contract for receiving ETH tips.
+- QuantekToken (QTK), an ERC-20 token implemented using OpenZeppelin.
+- Hardhat 3 configuration with Sepolia network support.
+- Ignition modules for smart contract deployment.
+- Solidity unit tests and TypeScript integration tests using `node:test` and `viem`.
+- Contract verification on Etherscan.
 
-## Usage
+## Technology Stack
+
+- Solidity
+- Hardhat 3
+- TypeScript
+- Viem
+- OpenZeppelin Contracts
+- Node.js Test Runner
+- Ethereum Sepolia Testnet
+
+## Project Usage
+
+### Install Dependencies
+
+```bash
+npm install
+```
 
 ### Running Tests
 
-To run all the tests in the project, execute the following command:
+Run all tests:
 
-```shell
+```bash
 npx hardhat test
 ```
 
-You can also selectively run the Solidity or `node:test` tests:
+Run Solidity tests:
 
-```shell
+```bash
 npx hardhat test solidity
+```
+
+Run Node.js tests:
+
+```bash
 npx hardhat test nodejs
 ```
 
-### Make a deployment to Sepolia
+### Build Contracts
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
-
-To run the deployment to a local chain:
-
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+```bash
+npx hardhat build
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+## Sepolia Network Configuration
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+This project supports deployment to the Ethereum Sepolia testnet.
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+- Network: Ethereum Sepolia
+- Chain ID: `11155111`
 
-```shell
+The following configuration variables are required:
+
+- `SEPOLIA_RPC_URL`
+- `SEPOLIA_PRIVATE_KEY`
+- `ETHERSCAN_API_KEY`
+
+## Hardhat Keystore Setup
+
+This project uses the Hardhat Keystore to securely store deployment credentials and API keys.
+
+Set up the required configuration variables using:
+
+```bash
+npx hardhat keystore set SEPOLIA_RPC_URL
 npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+npx hardhat keystore set ETHERSCAN_API_KEY
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+Enter the corresponding values when prompted.
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
+To check configured keys:
+
+```bash
+npx hardhat keystore list
 ```
+
+**Security Notes:**
+
+- Never share your wallet private key.
+- Never commit private keys, API keys, or keystore passwords.
+- Keep deployment credentials secure.
+- Use a Sepolia test wallet for testnet deployments.
+
+## Smart Contract Deployment
+
+### Deploy TipJar
+
+```bash
+npx hardhat ignition deploy ignition/modules/TipJar.ts --network sepolia
+```
+
+### Deploy QuantekToken
+
+```bash
+npx hardhat ignition deploy ignition/modules/QuantekToken.ts --network sepolia
+```
+
+## Sepolia Deployments
+
+Both smart contracts have been successfully deployed and verified on the Ethereum Sepolia testnet.
+
+| Contract           | Address                                      | Verification                                                                                              |
+| ------------------ | -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| TipJar             | `0x6252d560A25F0ED120932932476C7216aBe757Ae` | [View on Etherscan](https://sepolia.etherscan.io/address/0x6252d560A25F0ED120932932476C7216aBe757Ae#code) |
+| QuantekToken (QTK) | `0x23661B5A9Fb00564Fd79F454c9da07d31C7B7b29` | [View on Etherscan](https://sepolia.etherscan.io/address/0x23661B5A9Fb00564Fd79F454c9da07d31C7B7b29#code) |
+
+## Contract Verification
+
+Verify TipJar:
+
+```bash
+npx hardhat ignition deploy ignition/modules/TipJar.ts --network sepolia --verify
+```
+
+Verify QuantekToken:
+
+```bash
+npx hardhat ignition deploy ignition/modules/QuantekToken.ts --network sepolia --verify
+```
+
+Both contracts have been successfully verified on Etherscan.
+
+## Token Information
+
+**QuantekToken (QTK)**
+
+- Token Name: QuantekToken
+- Token Symbol: QTK
+- Token Standard: ERC-20
+- Initial Supply: 1,000,000 QTK
+- Decimals: 18
+
+## License
+
+This project is licensed under the MIT License.

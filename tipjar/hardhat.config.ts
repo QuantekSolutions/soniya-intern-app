@@ -1,8 +1,10 @@
+
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import { configVariable, defineConfig } from "hardhat/config";
 
 export default defineConfig({
   plugins: [hardhatToolboxViemPlugin],
+
   solidity: {
     profiles: {
       default: {
@@ -19,6 +21,7 @@ export default defineConfig({
       },
     },
   },
+
   networks: {
     hardhatMainnet: {
       type: "edr-simulated",
@@ -33,6 +36,12 @@ export default defineConfig({
       chainType: "l1",
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+  },
+
+  verify: {
+    etherscan: {
+      apiKey: configVariable("ETHERSCAN_API_KEY"),
     },
   },
 });
