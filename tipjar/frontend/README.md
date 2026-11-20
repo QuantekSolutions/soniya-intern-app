@@ -1,90 +1,126 @@
-# TipJar dApp – Setup & Run Guide
+# TipJar dApp – Frontend
 
-TipJar is a decentralized application (dApp) that allows users to send ETH tips with messages through their connected wallets. It is built using Next.js, RainbowKit, Wagmi, and Viem and interacts with a smart contract deployed on the Ethereum Sepolia testnet.
+## 1. Overview
 
-## Prerequisites
+TipJar is a blockchain-based decentralized application (dApp) that enables users to send ETH tips along with personal messages directly through their connected Ethereum wallets.
 
-Before running the application, make sure you have:
+Built with Next.js and integrated with Ethereum smart contracts deployed on the Sepolia testnet, the application also provides QTK token management, wallet authentication, and on-chain transaction history.
 
-- Node.js and npm installed.
-- MetaMask browser extension installed.
-- A Reown (WalletConnect) Project ID.
-- An Ethereum Sepolia testnet wallet with test ETH.
+## 2. Features
 
-## Getting Started
+- **Wallet Connection:** Connect and disconnect Ethereum wallets using RainbowKit and view wallet address and ETH balance.
+- **Sign-In with Ethereum (SIWE):** Authenticate wallet ownership through secure message signing and signature verification.
+- **ETH Tipping:** Send ETH tips with personalized messages through the deployed TipJar smart contract.
+- **QTK Token Management:** View token balances, transfer QTK tokens, approve spending allowances, and execute `transferFrom` operations.
+- **Tip History:** View previously submitted tips and their blockchain transaction details.
+- **Contract Balance & Withdrawal:** Check the smart contract balance and allow the contract owner to withdraw available funds.
 
-Follow these steps to set up and run the TipJar dApp locally.
+## 3. Tech Stack
 
-### 1. Install Dependencies
+| Technology         | Purpose                            |
+| ------------------ | ---------------------------------- |
+| Next.js            | Frontend framework                 |
+| React & TypeScript | UI development and type safety     |
+| RainbowKit         | Wallet connection interface        |
+| Wagmi              | Ethereum wallet and contract hooks |
+| Viem               | Ethereum blockchain interactions   |
+| TanStack Query     | Data fetching and caching          |
+| SIWE               | Wallet-based authentication        |
+| Solidity           | Smart contract development         |
+| Ethereum Sepolia   | Blockchain test network            |
 
-Navigate to the frontend directory and install the required project dependencies:
+## 4. Live URL
+
+**Deployed Application:** https://quantek-tipjar.vercel.app/
+
+## 5. Smart Contract Addresses
+
+The frontend interacts with the following deployed contracts on Ethereum Sepolia.
+
+| Contract           | Address                                      | Etherscan                                                                                        |
+| ------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| TipJar             | `0x6252d560A25F0ED120932932476C7216aBe757Ae` | [View Contract](https://sepolia.etherscan.io/address/0x6252d560A25F0ED120932932476C7216aBe757Ae) |
+| QuantekToken (QTK) | `0x23661B5A9Fb00564Fd79F454c9da07d31C7B7b29` | [View Contract](https://sepolia.etherscan.io/address/0x23661B5A9Fb00564Fd79F454c9da07d31C7B7b29) |
+
+**Network:** Ethereum Sepolia
+
+**Chain ID:** `11155111`
+
+## 6. Setup & Installation
+
+### Prerequisites
+
+- Node.js and npm
+- MetaMask or another supported Ethereum wallet
+- Reown (WalletConnect) Project ID
+- Sepolia test ETH
+
+### Installation
+
+Navigate to the frontend directory and install dependencies:
 
 ```bash
 cd tipjar/frontend
 npm install
 ```
 
-This command installs all the packages listed in `package.json`, including Next.js, Wagmi, Viem, RainbowKit, and TanStack Query.
+### Environment Variables
 
-### 2. Configure Environment Variables
-
-The application uses a Reown Project ID to enable wallet connectivity through RainbowKit.
-
-First, create a local environment file by copying the example file:
+Create a local environment file:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Open `.env.local` and add your Reown Project ID:
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Add the following variables to `.env.local`:
 
 ```env
 NEXT_PUBLIC_WC_PROJECT_ID=your_project_id
+NEXT_PUBLIC_TIPJAR_ADDRESS=your_tipjar_contract_address
+NEXT_PUBLIC_TOKEN_ADDRESS=your_token_contract_address
+NEXT_PUBLIC_RPC_URL=your_sepolia_rpc_url
 ```
 
-You can generate a Project ID from the [Reown Dashboard](https://cloud.reown.com).
+- Generate a Project ID from the [Reown Dashboard](https://cloud.reown.com/).
+- Obtain your Sepolia RPC URL from an Ethereum node provider such as [Alchemy](https://www.alchemy.com/).
+- Use the deployed contract addresses listed above.
 
-**Security Note:** The `.env.local` file contains local configuration and must never be committed to GitHub. The `NEXT_PUBLIC_` prefix makes this variable accessible in the browser, so only use a public Project ID or appropriately restricted public configuration. Never store private keys or wallet secrets in frontend environment variables.
+**Security:** Never commit `.env.local` or expose private keys and wallet secrets. Restrict your RPC API key appropriately.
 
-### 3. Start the Development Server
+### Run Locally
 
-After installing dependencies and configuring the environment variables, start the Next.js development server:
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-Once the server starts, open the following URL in your browser:
+Open http://localhost:3000 in your browser.
 
-http://localhost:3000
+## 7. Application Screenshots
 
-The TipJar application should now be accessible locally.
+### Wallet Disconnected
 
-## Network Configuration
+![Wallet Disconnected](public/screenshots/wallet-disconnected.png)
 
-The smart contract is deployed on the Ethereum Sepolia testnet.
+### Wallet Connected & Verified
 
-- **Network:** Ethereum Sepolia
-- **Chain ID:** 11155111
-- **Wallet:** MetaMask
+![Wallet Verified](public/screenshots/wallet-verified.png)
 
-Make sure MetaMask is connected to Sepolia before interacting with the application. You will need Sepolia test ETH to send tips and pay transaction gas fees.
+### User Dashboard
 
-## Available Functionality
+![User Dashboard](public/screenshots/user-dashboard.png)
 
-- Connect and disconnect an Ethereum wallet.
-- View the connected wallet address and balance.
-- Send ETH tips with custom messages.
-- View previously submitted tips.
-- Check the smart contract balance.
-- Withdraw contract funds through the owner-only functionality.
+### QTK Token Management
 
-## Production Build
+![QTK Token Management](public/screenshots/qtk-management.png)
 
-To verify the application before deployment, run:
+### Tip History
 
-```bash
-npm run build
-```
-
-A successful build confirms that the Next.js application compiles correctly for production.
+![Tip History](public/screenshots/tip-history.png)
