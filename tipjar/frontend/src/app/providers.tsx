@@ -1,13 +1,16 @@
-
 "use client";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
-import { config } from "@/lib/wagmi";
 import { useState } from "react";
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+import { WagmiProvider } from "wagmi";
+
+import { config } from "@/lib/wagmi";
 
 export function Providers({
   children,
