@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -6,7 +5,13 @@ import { SiweMessage } from "siwe";
 import { useAccount, useChainId, useSignMessage } from "wagmi";
 import { sepolia } from "wagmi/chains";
 
-export default function SignInWithEthereum() {
+interface SignInWithEthereumProps {
+  onAuthenticated: (address: string) => void;
+}
+
+export default function SignInWithEthereum({
+  onAuthenticated,
+}: SignInWithEthereumProps) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { signMessageAsync } = useSignMessage();
@@ -39,7 +44,7 @@ export default function SignInWithEthereum() {
       });
 
       if (!nonceResponse.ok) {
-        throw new Error("Unable to get sign-in nonce.");
+        throw new Error("Unable to get sign-in nonce. Please try again.");
       }
 
       const { nonce, domain } = await nonceResponse.json();
@@ -57,6 +62,7 @@ export default function SignInWithEthereum() {
 
       const message = siweMessage.prepareMessage();
 
+      // MetaMask asks the user to approve this message signature.
       const signature = await signMessageAsync({ message });
 
       const verifyResponse = await fetch("/api/auth/verify", {
@@ -69,22 +75,31 @@ export default function SignInWithEthereum() {
 
       const result = await verifyResponse.json();
 
-      if (!verifyResponse.ok || !result.success) {
+      if (!verifyResponse.ok || !result.success || !result.address) {
         throw new Error(
-          result.message || "Sign-in verification failed."
+          result.message || "Sign-in verification failed. Please try again."
         );
       }
 
       setVerifiedAddress(result.address);
-      setStatus(result.message || "Wallet verified successfully.");
+      setStatus("Wallet verified successfully.");
+      onAuthenticated(result.address);
     } catch (error) {
       console.error("SIWE sign-in error:", error);
 
-      setStatus(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong during sign-in."
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      if (
+        errorMessage.toLowerCase().includes("user rejected") ||
+        errorMessage.toLowerCase().includes("user denied")
+      ) {
+        setStatus(
+          "You declined the signature. Please sign the message to unlock TipJar."
+        );
+      } else {
+        setStatus(errorMessage || "Something went wrong during sign-in.");
+      }
     } finally {
       setLoading(false);
     }
@@ -102,7 +117,7 @@ export default function SignInWithEthereum() {
             Sign in with Ethereum
           </h3>
           <p className="mt-1 text-xs text-gray-400">
-            Verify wallet ownership with a message signature.
+            Sign a message to prove that you own this wallet.
           </p>
         </div>
 
@@ -124,9 +139,7 @@ export default function SignInWithEthereum() {
             ? "Switch to Sepolia first"
             : loading
               ? "Verifying..."
-              : verifiedAddress
-                ? "Sign in again"
-                : "Sign in with MetaMask"}
+              : "Sign in with MetaMask"}
       </button>
 
       <p className="mt-3 text-xs text-gray-400">
@@ -136,16 +149,11 @@ export default function SignInWithEthereum() {
       {status && (
         <p
           className={`mt-3 break-words text-sm ${
-            verifiedAddress ? "text-emerald-400" : "text-amber-300"
+            verifiedAddress ? "text-emerald-400" : "text-red-400"
           }`}
+          role="status"
         >
           {status}
-        </p>
-      )}
-
-      {verifiedAddress && (
-        <p className="mt-2 break-all text-xs text-gray-400">
-          Verified address: {verifiedAddress}
         </p>
       )}
     </div>

@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useAccount, useReadContracts } from "wagmi";
 import { formatUnits } from "viem";
 
@@ -11,8 +12,16 @@ import {
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export default function TokenBalance() {
+interface TokenBalanceProps {
+  refreshKey?: number;
+}
+
+export default function TokenBalance({
+  refreshKey,
+}: TokenBalanceProps) {
   const { address, isConnected, chainId } = useAccount();
+
+  const previousRefreshKey = useRef(refreshKey);
 
   const { data, isLoading, error, refetch } = useReadContracts({
     contracts: [
@@ -38,6 +47,14 @@ export default function TokenBalance() {
     },
   });
 
+  // Refresh token data when Dashboard Refresh is clicked.
+  useEffect(() => {
+    if (previousRefreshKey.current !== refreshKey) {
+      previousRefreshKey.current = refreshKey;
+      void refetch();
+    }
+  }, [refreshKey, refetch]);
+
   const cardStyle =
     "space-y-4 rounded-xl border border-slate-700 bg-slate-900/80 p-5 shadow-lg";
 
@@ -47,7 +64,9 @@ export default function TokenBalance() {
   if (!isConnected || !address) {
     return (
       <div className={cardStyle}>
-        <h2 className="text-lg font-bold text-white">Quantek Token Balance</h2>
+        <h2 className="text-lg font-bold text-white">
+          Quantek Token Balance
+        </h2>
         <p className="text-sm text-slate-400">
           Connect your wallet to view token balance.
         </p>
@@ -58,7 +77,9 @@ export default function TokenBalance() {
   if (chainId !== 11155111) {
     return (
       <div className={cardStyle}>
-        <h2 className="text-lg font-bold text-white">Quantek Token Balance</h2>
+        <h2 className="text-lg font-bold text-white">
+          Quantek Token Balance
+        </h2>
         <p className="text-sm text-red-400">
           Please connect to Ethereum Sepolia.
         </p>
@@ -69,8 +90,12 @@ export default function TokenBalance() {
   if (isLoading) {
     return (
       <div className={cardStyle}>
-        <h2 className="text-lg font-bold text-white">Quantek Token Balance</h2>
-        <p className="text-sm text-slate-400">Loading token balance...</p>
+        <h2 className="text-lg font-bold text-white">
+          Quantek Token Balance
+        </h2>
+        <p className="text-sm text-slate-400">
+          Loading token balance...
+        </p>
       </div>
     );
   }
@@ -78,10 +103,19 @@ export default function TokenBalance() {
   if (error) {
     return (
       <div className={cardStyle}>
-        <h2 className="text-lg font-bold text-white">Quantek Token Balance</h2>
+        <h2 className="text-lg font-bold text-white">
+          Quantek Token Balance
+        </h2>
         <p className="break-words text-sm text-red-400">
           Error: {error.message}
         </p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className={secondaryButton}
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -97,20 +131,34 @@ export default function TokenBalance() {
   ) {
     return (
       <div className={cardStyle}>
-        <h2 className="text-lg font-bold text-white">Quantek Token Balance</h2>
+        <h2 className="text-lg font-bold text-white">
+          Quantek Token Balance
+        </h2>
         <p className="text-sm text-slate-400">
           Token balance unavailable. Please try again.
         </p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className={secondaryButton}
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
-  const formattedBalance = formatUnits(balance.result, decimals.result);
+  const formattedBalance = formatUnits(
+    balance.result,
+    decimals.result
+  );
 
   return (
     <div className={cardStyle}>
       <div>
-        <h2 className="text-lg font-bold text-white">Quantek Token Balance</h2>
+        <h2 className="text-lg font-bold text-white">
+          Quantek Token Balance
+        </h2>
         <p className="mt-1 text-sm text-slate-400">
           Your available QTK token balance.
         </p>
@@ -119,7 +167,9 @@ export default function TokenBalance() {
       <div className="rounded-lg border border-slate-700 bg-slate-950/60 p-4">
         <p className="text-3xl font-bold text-white">
           {formattedBalance}{" "}
-          <span className="text-violet-400">{symbol.result}</span>
+          <span className="text-violet-400">
+            {symbol.result}
+          </span>
         </p>
         <p className="mt-2 text-xs text-slate-500">
           Token Decimals: {decimals.result}
@@ -128,7 +178,7 @@ export default function TokenBalance() {
 
       <button
         type="button"
-        onClick={() => refetch()}
+        onClick={() => void refetch()}
         className={secondaryButton}
       >
         Refresh Balance

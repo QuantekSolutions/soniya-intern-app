@@ -9,7 +9,7 @@ import {
 } from "@rainbow-me/rainbowkit/wallets";
 
 import { createConfig } from "wagmi";
-import { http } from "viem";
+import { fallback, http } from "viem";
 import { sepolia } from "wagmi/chains";
 
 const connectors = connectorsForWallets(
@@ -30,11 +30,25 @@ const connectors = connectorsForWallets(
   }
 );
 
+const alchemyRpc = process.env.NEXT_PUBLIC_RPC_URL;
+
 export const config = createConfig({
   chains: [sepolia],
   connectors,
+
   transports: {
-    [sepolia.id]: http(process.env.NEXT_PUBLIC_RPC_URL),
+    [sepolia.id]: fallback([
+      ...(alchemyRpc ? [http(alchemyRpc, {
+        retryCount: 1,
+        timeout: 10000,
+      })] : []),
+
+      http("https://ethereum-sepolia-rpc.publicnode.com", {
+        retryCount: 2,
+        timeout: 15000,
+      }),
+    ]),
   },
+
   ssr: true,
 });
