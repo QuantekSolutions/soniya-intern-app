@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { fetchProducts, Product } from '../../../lib/api';
 import ProductCard from '../../components/ProductCard';
@@ -20,23 +20,25 @@ export default function FavoritesScreen() {
 
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setError(null);
-        const data = await fetchProducts();
-        setProducts(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Something went wrong'
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    loadProducts();
+    try {
+      const data = await fetchProducts();
+      setProducts(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Something went wrong'
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const favoriteProducts = products.filter((product) =>
     favorites.includes(product.id)
@@ -55,10 +57,7 @@ export default function FavoritesScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>{error}</Text>
-        <Text
-          style={styles.retry}
-          onPress={() => router.replace('/(tabs)/favorites')}
-        >
+        <Text style={styles.retry} onPress={loadProducts}>
           Retry
         </Text>
       </View>
