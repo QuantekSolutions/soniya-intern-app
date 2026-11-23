@@ -1,7 +1,6 @@
 
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
 import ProfileCard from '@/components/ProfileCard';
 
 export default function HomeScreen() {
