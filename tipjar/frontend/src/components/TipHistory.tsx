@@ -4,15 +4,16 @@
 import { useEffect, useState } from "react";
 import { formatEther, type Address, type Hash } from "viem";
 import { useChainId, usePublicClient } from "wagmi";
+
 import {
   TIPJAR_ABI,
   TIPJAR_ADDRESS,
 } from "@/lib/contracts";
 
 const SEPOLIA_CHAIN_ID = 11155111;
-const CHUNK_SIZE = 10n;
+const CHUNK_SIZE = 2_000n;
 const MAX_TIPS = 10n;
-const REQUEST_DELAY = 250;
+const MAX_RETRIES = 3;
 
 interface TipHistoryItem {
   from: Address;
@@ -24,24 +25,54 @@ interface TipHistoryItem {
 
 interface TipHistoryProps {
   deploymentBlock: bigint;
+  refreshKey?: number;
 }
-
-// Prevent duplicate scanning during React Strict Mode
-let activeHistoryRequest: Promise<TipHistoryItem[]> | null = null;
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function withRpcRetry<T>(
+  request: () => Promise<T>
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      return await request();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < MAX_RETRIES - 1) {
+        await delay(1000 * (attempt + 1));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 export default function TipHistory({
   deploymentBlock,
+  refreshKey,
 }: TipHistoryProps) {
-  const publicClient = usePublicClient();
+  const publicClient = usePublicClient({
+    chainId: SEPOLIA_CHAIN_ID,
+  });
+
   const chainId = useChainId();
 
   const [tips, setTips] = useState<TipHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Refresh history using its own button.
+  const handleRefresh = () => {
+    if (!loading) {
+      setRetryCount((count) => count + 1);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -49,127 +80,104 @@ export default function TipHistory({
     async function fetchTipHistory() {
       if (!publicClient || chainId !== SEPOLIA_CHAIN_ID) {
         setTips([]);
-        setError("Please connect your wallet to Sepolia.");
+        setError("Please switch your wallet to Ethereum Sepolia.");
         setLoading(false);
         return;
       }
 
-      try {
-        setLoading(true);
-        setError("");
+      setLoading(true);
+      setError("");
 
-        // Reuse an existing request if React runs the effect twice.
-        const request =
-          activeHistoryRequest ??
-          (activeHistoryRequest = (async () => {
-            // Step 1: Read total tips from the contract
-            const totalTips = await publicClient.readContract({
+      try {
+        // 1. Read total tips from the smart contract.
+        const totalTips = await withRpcRetry(() =>
+          publicClient.readContract({
+            address: TIPJAR_ADDRESS,
+            abi: TIPJAR_ABI,
+            functionName: "getTipCount",
+          })
+        );
+
+        if (cancelled) return;
+
+        const expectedTips =
+          totalTips > MAX_TIPS ? MAX_TIPS : totalTips;
+
+        if (expectedTips === 0n) {
+          setTips([]);
+          return;
+        }
+
+        // 2. Get latest Sepolia block.
+        const latestBlock = await withRpcRetry(() =>
+          publicClient.getBlockNumber()
+        );
+
+        if (cancelled) return;
+
+        if (latestBlock < deploymentBlock) {
+          setTips([]);
+          return;
+        }
+
+        // 3. Scan recent blocks backwards.
+        let currentToBlock = latestBlock;
+        const allTips: TipHistoryItem[] = [];
+
+        while (
+          currentToBlock >= deploymentBlock &&
+          BigInt(allTips.length) < expectedTips
+        ) {
+          const currentFromBlock =
+            currentToBlock - deploymentBlock + 1n > CHUNK_SIZE
+              ? currentToBlock - CHUNK_SIZE + 1n
+              : deploymentBlock;
+
+          const events = await withRpcRetry(() =>
+            publicClient.getContractEvents({
               address: TIPJAR_ADDRESS,
               abi: TIPJAR_ABI,
-              functionName: "getTipCount",
-            });
+              eventName: "TipSent",
+              fromBlock: currentFromBlock,
+              toBlock: currentToBlock,
+            })
+          );
 
-            const expectedTips =
-              totalTips > MAX_TIPS ? MAX_TIPS : totalTips;
+          if (cancelled) return;
 
-            if (expectedTips === 0n) {
-              return [];
-            }
-
-            // Step 2: Get the latest block
-            const latestBlock = await publicClient.getBlockNumber();
-
-            let currentToBlock = latestBlock;
-            const allTips: TipHistoryItem[] = [];
-
-            // Step 3: Scan backwards in 10-block chunks
-            while (
-              currentToBlock >= deploymentBlock &&
-              BigInt(allTips.length) < expectedTips
+          // 4. Extract tip details.
+          for (const event of events) {
+            if (
+              event.args.from !== undefined &&
+              event.args.amount !== undefined &&
+              event.args.message !== undefined &&
+              event.blockNumber !== undefined &&
+              event.transactionHash !== undefined
             ) {
-              const currentFromBlock =
-                currentToBlock - deploymentBlock + 1n > CHUNK_SIZE
-                  ? currentToBlock - CHUNK_SIZE + 1n
-                  : deploymentBlock;
-
-              let events;
-
-              // Retry rate-limited requests up to 3 times
-              for (let attempt = 0; attempt < 3; attempt++) {
-                try {
-                  events = await publicClient.getContractEvents({
-                    address: TIPJAR_ADDRESS,
-                    abi: TIPJAR_ABI,
-                    eventName: "TipSent",
-                    fromBlock: currentFromBlock,
-                    toBlock: currentToBlock,
-                  });
-
-                  break;
-                } catch (err) {
-                  const message =
-                    err instanceof Error ? err.message : String(err);
-
-                  const isRateLimited =
-                    message.includes("429") ||
-                    message.toLowerCase().includes("too many requests") ||
-                    message.toLowerCase().includes("rate limit");
-
-                  if (!isRateLimited || attempt === 2) {
-                    throw err;
-                  }
-
-                  await delay(1500 * (attempt + 1));
-                }
-              }
-
-              // Step 4: Extract event details
-              for (const event of events ?? []) {
-                if (
-                  event.args.from !== undefined &&
-                  event.args.amount !== undefined &&
-                  event.args.message !== undefined &&
-                  event.blockNumber !== undefined &&
-                  event.transactionHash !== undefined
-                ) {
-                  allTips.push({
-                    from: event.args.from,
-                    amount: event.args.amount,
-                    message: event.args.message,
-                    blockNumber: event.blockNumber,
-                    transactionHash: event.transactionHash,
-                  });
-                }
-              }
-
-              // Move to the previous block range
-              currentToBlock = currentFromBlock - 1n;
-
-              // Avoid sending requests too quickly
-              if (
-                currentToBlock >= deploymentBlock &&
-                BigInt(allTips.length) < expectedTips
-              ) {
-                await delay(REQUEST_DELAY);
-              }
+              allTips.push({
+                from: event.args.from,
+                amount: event.args.amount,
+                message: event.args.message,
+                blockNumber: event.blockNumber,
+                transactionHash: event.transactionHash,
+              });
             }
+          }
 
-            // Step 5: Sort newest tips first
-            allTips.sort((a, b) =>
-              a.blockNumber > b.blockNumber
-                ? -1
-                : a.blockNumber < b.blockNumber
-                  ? 1
-                  : 0
-            );
+          currentToBlock = currentFromBlock - 1n;
+        }
 
-            return allTips.slice(0, Number(MAX_TIPS));
-          })());
-
-        const result = await request;
+        // 5. Show newest tips first.
+        allTips.sort((a, b) =>
+          a.blockNumber > b.blockNumber
+            ? -1
+            : a.blockNumber < b.blockNumber
+              ? 1
+              : 0
+        );
 
         if (!cancelled) {
-          setTips(result);
+          setTips(allTips.slice(0, Number(MAX_TIPS)));
         }
       } catch (err) {
         console.error("Tip history error:", err);
@@ -178,47 +186,72 @@ export default function TipHistory({
           const message =
             err instanceof Error ? err.message : String(err);
 
+          const lowerMessage = message.toLowerCase();
+
           if (
             message.includes("429") ||
-            message.toLowerCase().includes("too many requests") ||
-            message.toLowerCase().includes("rate limit")
+            lowerMessage.includes("too many requests") ||
+            lowerMessage.includes("rate limit")
           ) {
             setError(
-              "Alchemy rate limit reached. Please wait a little and refresh."
+              "The Sepolia RPC is receiving too many requests. Please wait a moment and try again."
+            );
+          } else if (
+            lowerMessage.includes("failed to fetch") ||
+            lowerMessage.includes("network") ||
+            lowerMessage.includes("timeout")
+          ) {
+            setError(
+              "Could not connect to the Sepolia RPC. Check your internet connection or RPC API key, then try again."
             );
           } else {
-            setError("Unable to load tip history. Please try again.");
+            setError(
+              "Unable to load tip history from the blockchain. Please try again."
+            );
           }
         }
       } finally {
         if (!cancelled) {
           setLoading(false);
         }
-
-        // Clear the shared request after completion
-        if (activeHistoryRequest) {
-          activeHistoryRequest = null;
-        }
       }
     }
 
-    fetchTipHistory();
+    void fetchTipHistory();
 
     return () => {
       cancelled = true;
     };
-  }, [publicClient, chainId, deploymentBlock]);
+  }, [
+    publicClient,
+    chainId,
+    deploymentBlock,
+    retryCount,
+    refreshKey,
+  ]);
 
   return (
     <section className="mt-8 rounded-xl border border-gray-700 bg-gray-900 p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white">
-          Tip History
-        </h2>
+      {/* Header and Refresh Button */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-white">
+            Tip History
+          </h2>
 
-        <p className="mt-1 text-sm text-gray-400">
-          Your latest 10 blockchain tips
-        </p>
+          <p className="mt-1 text-sm text-gray-400">
+            Your latest 10 blockchain tips
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={loading}
+          className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-300 transition hover:border-indigo-400 hover:bg-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? "↻ Refreshing..." : "↻ Refresh History"}
+        </button>
       </div>
 
       {loading && (
@@ -228,9 +261,19 @@ export default function TipHistory({
       )}
 
       {!loading && error && (
-        <p className="break-words rounded-lg bg-red-900/30 p-3 text-sm text-red-400">
-          {error}
-        </p>
+        <div className="space-y-3">
+          <p className="break-words rounded-lg border border-red-500/20 bg-red-900/30 p-3 text-sm text-red-400">
+            {error}
+          </p>
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-indigo-500/50 hover:bg-indigo-500/10"
+          >
+            Try Again
+          </button>
+        </div>
       )}
 
       {!loading && !error && tips.length === 0 && (

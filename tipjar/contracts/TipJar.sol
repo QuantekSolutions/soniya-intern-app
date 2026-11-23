@@ -19,10 +19,12 @@ contract TipJar {
     // 4. Custom errors
     error ZeroTip();
     error NotOwner(address caller);
+    error ZeroWithdrawal();
+    error InsufficientBalance(uint256 requested, uint256 available);
+    error WithdrawalFailed();
 
     // 5. Events
     event TipSent(address indexed from, uint256 amount, string message);
-
     event Withdrawn(address indexed owner, uint256 amount);
 
     // 6. Constructor
@@ -40,12 +42,10 @@ contract TipJar {
 
     // 8. Receive tips
     function tip(string calldata message) external payable {
-        // Check that ETH is not zero
         if (msg.value == 0) {
             revert ZeroTip();
         }
 
-        // Store tip details
         tips.push(
             Tip({
                 from: msg.sender,
@@ -55,7 +55,6 @@ contract TipJar {
             })
         );
 
-        // Emit tip event
         emit TipSent(msg.sender, msg.value, message);
     }
 
@@ -69,17 +68,29 @@ contract TipJar {
         return tips[index];
     }
 
-    // 11. Withdraw complete contract balance
-    function withdraw() external onlyOwner {
-        uint256 amount = address(this).balance;
+    // 11. Get contract ETH balance
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
 
-        // Send ETH to owner
+    // 12. Withdraw a specific ETH amount
+    function withdraw(uint256 amount) external onlyOwner {
+        uint256 availableBalance = address(this).balance;
+
+        if (amount == 0) {
+            revert ZeroWithdrawal();
+        }
+
+        if (amount > availableBalance) {
+            revert InsufficientBalance(amount, availableBalance);
+        }
+
         (bool success, ) = payable(owner).call{value: amount}("");
 
-        // Check whether transfer succeeded
-        require(success, "Withdrawal failed");
+        if (!success) {
+            revert WithdrawalFailed();
+        }
 
-        // Emit withdrawal event
         emit Withdrawn(owner, amount);
     }
 }

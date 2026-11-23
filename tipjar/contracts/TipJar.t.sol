@@ -11,6 +11,8 @@ contract TipJarTest is Test {
     address tipper = address(0x123);
     address nonOwner = address(0x456);
 
+    event Withdrawn(address indexed owner, uint256 amount);
+
     function setUp() public {
         vm.prank(ownerAddr);
         tipJar = new TipJar();
@@ -25,6 +27,7 @@ contract TipJarTest is Test {
 
         assertEq(address(tipJar).balance, 1 ether);
         assertEq(tipJar.getTipCount(), 1);
+        assertEq(tipJar.getBalance(), 1 ether);
     }
 
     // Test 2: Zero ETH tip reverts
@@ -37,27 +40,61 @@ contract TipJarTest is Test {
 
     // Test 3: Non-owner cannot withdraw
     function test_NonOwnerWithdrawReverts() public {
+        uint256 amount = 1 ether;
+
         vm.expectRevert(
             abi.encodeWithSelector(TipJar.NotOwner.selector, nonOwner)
         );
 
         vm.prank(nonOwner);
-        tipJar.withdraw();
+        tipJar.withdraw(amount);
     }
 
-    // Test 4: Owner withdraws full balance
-    function test_OwnerWithdrawsFullBalance() public {
-        uint256 amount = 3 ether;
+    // Test 4: Owner withdraws a specific amount
+    function test_OwnerWithdrawsSpecificAmount() public {
+        uint256 depositAmount = 3 ether;
+        uint256 withdrawAmount = 1 ether;
 
-        vm.deal(address(tipJar), amount);
+        vm.deal(address(tipJar), depositAmount);
         vm.deal(ownerAddr, 1 ether);
 
         uint256 ownerBalanceBefore = ownerAddr.balance;
 
-        vm.prank(ownerAddr);
-        tipJar.withdraw();
+        vm.expectEmit(true, false, false, true);
+        emit Withdrawn(ownerAddr, withdrawAmount);
 
-        assertEq(ownerAddr.balance, ownerBalanceBefore + amount);
-        assertEq(address(tipJar).balance, 0);
+        vm.prank(ownerAddr);
+        tipJar.withdraw(withdrawAmount);
+
+        assertEq(ownerAddr.balance, ownerBalanceBefore + withdrawAmount);
+
+        assertEq(address(tipJar).balance, depositAmount - withdrawAmount);
+    }
+
+    // Test 5: Zero withdrawal reverts
+    function test_ZeroWithdrawalReverts() public {
+        vm.expectRevert(TipJar.ZeroWithdrawal.selector);
+
+        vm.prank(ownerAddr);
+        tipJar.withdraw(0);
+    }
+
+    // Test 6: Withdrawal greater than balance reverts
+    function test_InsufficientBalanceReverts() public {
+        uint256 availableBalance = 1 ether;
+        uint256 requestedAmount = 2 ether;
+
+        vm.deal(address(tipJar), availableBalance);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                TipJar.InsufficientBalance.selector,
+                requestedAmount,
+                availableBalance
+            )
+        );
+
+        vm.prank(ownerAddr);
+        tipJar.withdraw(requestedAmount);
     }
 }
